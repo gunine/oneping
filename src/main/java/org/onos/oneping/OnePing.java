@@ -28,7 +28,7 @@ import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.cfg.ComponentConfigService;
 import org.onosproject.net.DeviceId;
-import org.onosproject.net.flow.DefaultFlowRule;
+//import org.onosproject.net.flow.DefaultFlowRule;
 import org.onosproject.net.flow.DefaultTrafficSelector;
 import org.onosproject.net.flow.DefaultTrafficTreatment;
 import org.onosproject.net.flow.FlowRule;
@@ -39,9 +39,9 @@ import org.onosproject.net.flow.TrafficSelector;
 import org.onosproject.net.flow.TrafficTreatment;
 import org.onosproject.net.flow.criteria.Criterion;
 import org.onosproject.net.flow.criteria.EthCriterion;
-//import org.onosproject.net.flowobjective.DefaultForwardingObjective;
+import org.onosproject.net.flowobjective.DefaultForwardingObjective;
 import org.onosproject.net.flowobjective.FlowObjectiveService;
-//import org.onosproject.net.flowobjective.ForwardingObjective;
+import org.onosproject.net.flowobjective.ForwardingObjective;
 import org.onosproject.net.packet.PacketContext;
 import org.onosproject.net.packet.PacketPriority;
 import org.onosproject.net.packet.PacketProcessor;
@@ -172,20 +172,29 @@ public class OnePing {
                 .drop().build();
 
         // LAB2: Implement the logic of Ban Pings using FlowRule Service API
-        FlowRule fl = DefaultFlowRule.builder()
-                .fromApp(appId)
-                .forDevice(deviceId)
-                .forTable(0)
-                .withSelector(selector)
-                .withTreatment(drop)
-                .withPriority(DROP_PRIORITY)
-                .makeTemporary(TIMEOUT_SEC)
-                .build();
+        //FlowRule fl = DefaultFlowRule.builder()
+        //        .fromApp(appId)
+        //        .forDevice(deviceId)
+        //        .forTable(0)
+        //        .withSelector(selector)
+        //        .withTreatment(drop)
+        //        .withPriority(DROP_PRIORITY)
+        //        .makeTemporary(TIMEOUT_SEC)
+        //        .build();
 
-        flowRuleService.applyFlowRules(fl);
+        //flowRuleService.applyFlowRules(fl);
 
         // LAB3: Implement the logic of Ban Pings using FlowObjective Service API
+        ForwardingObjective fo = DefaultForwardingObjective.builder()
+                .fromApp(appId)
+                .withSelector(selector)
+                .withTreatment(drop)
+                .withFlag(ForwardingObjective.Flag.VERSATILE)
+                .withPriority(DROP_PRIORITY)
+                .makeTemporary(TIMEOUT_SEC)
+                .add();
 
+        flowObjectiveService.forward(deviceId, fo);
     }
 
 
