@@ -28,7 +28,7 @@ import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.cfg.ComponentConfigService;
 import org.onosproject.net.DeviceId;
-//import org.onosproject.net.flow.DefaultFlowRule;
+import org.onosproject.net.flow.DefaultFlowRule;
 import org.onosproject.net.flow.DefaultTrafficSelector;
 import org.onosproject.net.flow.DefaultTrafficTreatment;
 import org.onosproject.net.flow.FlowRule;
@@ -153,7 +153,7 @@ public class OnePing {
             banPings(deviceId, src, dst);
 
             // LAB2/LAB3: uncomment context.block();
-            // context.block();
+            context.block();
         } else {
             // One ping detected; track it for the next minute
             log.info(MSG_PINGED_ONCE, src, dst, deviceId);
@@ -172,6 +172,17 @@ public class OnePing {
                 .drop().build();
 
         // LAB2: Implement the logic of Ban Pings using FlowRule Service API
+        FlowRule fl = DefaultFlowRule.builder()
+                .fromApp(appId)
+                .forDevice(deviceId)
+                .forTable(0)
+                .withSelector(selector)
+                .withTreatment(drop)
+                .withPriority(DROP_PRIORITY)
+                .makeTemporary(TIMEOUT_SEC)
+                .build();
+
+        flowRuleService.applyFlowRules(fl);
 
         // LAB3: Implement the logic of Ban Pings using FlowObjective Service API
 
