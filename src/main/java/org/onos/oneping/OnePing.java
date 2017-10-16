@@ -19,6 +19,8 @@ import com.google.common.collect.HashMultimap;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Modified;
+import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.onlab.packet.Ethernet;
@@ -26,6 +28,7 @@ import org.onlab.packet.IPv4;
 import org.onlab.packet.MacAddress;
 import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
+import org.onlab.util.Tools;
 import org.onosproject.cfg.ComponentConfigService;
 import org.onosproject.net.DeviceId;
 //import org.onosproject.net.flow.DefaultFlowRule;
@@ -46,9 +49,11 @@ import org.onosproject.net.packet.PacketContext;
 import org.onosproject.net.packet.PacketPriority;
 import org.onosproject.net.packet.PacketProcessor;
 import org.onosproject.net.packet.PacketService;
+import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Dictionary;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Timer;
@@ -95,6 +100,9 @@ public class OnePing {
     protected ComponentConfigService cfgService;
 
     // LAB4: make timeout as a configurable variable using @Property annotation
+    @Property(name = "timeout", intValue = TIMEOUT_SEC,
+            label = "Timeout for expiring ban ping flow rule; default is 60 sec ")
+    protected int timeout = TIMEOUT_SEC;
 
     private ApplicationId appId;
     private final PacketProcessor packetProcessor = new PingPacketProcessor();
@@ -116,6 +124,7 @@ public class OnePing {
 
         // LAB4: register this class as a key to cfgService
         // via registerProperties method
+        cfgService.registerProperties(getClass());
 
         packetService.addProcessor(packetProcessor, PRIORITY);
         flowRuleService.addListener(flowListener);
@@ -132,12 +141,18 @@ public class OnePing {
 
         // LAB4: unregister this class from cfgService via
         // unregisterProperties method
+        cfgService.unregisterProperties(getClass(), false);
 
         log.info("Stopped");
     }
 
     // LAB4: add modify method annotated using @Modify annotation,
     // invoke readComponent to read value from ComponentContext
+    @Modified
+    public void modified(ComponentContext context) {
+        readComponentConfiguration(context);
+    }
+
 
     // Processes the specified ICMP ping packet.
     private void processPing(PacketContext context, Ethernet eth) {
@@ -160,7 +175,7 @@ public class OnePing {
             pings.put(deviceId, ping);
 
             // LAB4: make TIMEOUT_SEC be configurable
-            timer.schedule(new PingPruner(deviceId, ping), TIMEOUT_SEC * 1000);
+            timer.schedule(new PingPruner(deviceId, ping), timeout * 1000);
         }
     }
 
@@ -191,7 +206,7 @@ public class OnePing {
                 .withTreatment(drop)
                 .withFlag(ForwardingObjective.Flag.VERSATILE)
                 .withPriority(DROP_PRIORITY)
-                .makeTemporary(TIMEOUT_SEC)
+                .makeTemporary(timeout)
                 .add();
 
         flowObjectiveService.forward(deviceId, fo);
@@ -276,5 +291,16 @@ public class OnePing {
 
     // LAB4: implement readComponentConfiguration which reads the timeout from
     // ComponentContext, and configure to local timeout variable.
+    private void readComponentConfiguration(ComponentContext context) {
+        Dictionary<?, ?> properties = context.getProperties();
 
+        Integer timeoutConfigured = Tools.getIntegerProperty(properties, "timeout");
+        if (timeoutConfigured == null) {
+            timeout = TIMEOUT_SEC;
+            log.info("Timeout is not configured, default value is {}", timeout);
+        } else {
+            timeout = timeoutConfigured;
+            log.info("Configured. Timeout is configured to {}", timeout);
+        }
+    }
 }
